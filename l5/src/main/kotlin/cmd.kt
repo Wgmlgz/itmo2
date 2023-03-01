@@ -41,7 +41,7 @@ class Cmd(private val save: String) {
 
     private fun findById(id: Long) = q.find { it.id() == id } ?: throw Error("cannot find product by id: $id")
 
-    private fun help() = io.printer.println(commands.joinToString("\n") { (_, b, _) -> b })
+    private fun help() = io.printer.println(commands.filter { (_, b, _) -> b.isNotEmpty() }.joinToString("\n") { (_, b, _) -> b })
 
     private val commands: Array<Triple<String, String, (m: MatchResult) -> Unit>> = arrayOf(
         Triple("help", "help : output help for available commands") { help() },
@@ -151,7 +151,7 @@ class Cmd(private val save: String) {
             q.filter { it.nameContains(pattern) }.forEach { io.printer.println(it.toString()) }
             io.printer.println("done")
         },
-        Triple("", "") { }, // just newline
+        Triple("$^", "") { }, // just newline
         Triple(".*", "") { io.printer.println("unknown command") },
     )
 
