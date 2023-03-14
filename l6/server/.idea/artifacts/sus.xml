@@ -1,6 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="sus">
-    <output-path>$PROJECT_DIR$/out/artifacts/sus</output-path>
-    <root id="archive" name="sus.jar" />
-  </artifact>
-</component>

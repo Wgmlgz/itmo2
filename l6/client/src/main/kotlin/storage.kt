@@ -1,3 +1,4 @@
+import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -15,6 +16,8 @@ import java.time.format.DateTimeFormatter
  * @property owner
  * @constructor Create empty Product
  */
+
+@Serializable
 class Product(
     private var id: Long,
     private val name: String,
@@ -124,6 +127,7 @@ class Product(
  * @property y
  * @constructor Create empty Coordinates
  */
+@Serializable
 class Coordinates(
     private val x: Float,
     private val y: Long

@@ -1,6 +1,40 @@
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+
+@Serializable
+enum class CommandType{
+    info,
+    show,
+    add,
+    update,
+    remove_by_id,
+    save,
+    execute_script,
+    exit,
+    remove_first,
+    and_if_max,
+    remove_greater,
+    min_by_manufacture_cost,
+    count_less_than_owner,
+    filter_contains_name,
+}
+@Serializable
+class Command(val type: CommandType)
+
+
+@Serializable
+class StrCommand(val type: CommandType, val str: String)
+
+@Serializable
+class ProductCommand(val type: CommandType, val product: Product)
+
+
+@Serializable
+class ProductCommand(val type: CommandType, val str: String)
 
 internal object UDPClient {
     private var socket: DatagramSocket? = null
@@ -30,6 +64,8 @@ internal object UDPClient {
     @Throws(Exception::class)
     @JvmStatic
     fun main(args: Array<String>) {
+        val json = Json.encodeToString(Command(CommandType.info))
+        println(json)
         println(
             "You need to press CTRL+C"
                     + " in order to quit."
