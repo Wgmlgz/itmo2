@@ -4,6 +4,7 @@ import java.io.FileWriter
 import java.io.PrintWriter
 import java.time.ZonedDateTime
 import java.util.*
+import kotlin.collections.HashSet
 
 /**
  * Cmd handles main logic
@@ -16,6 +17,7 @@ class Cmd(private val save: String) {
     private var alive = true
     private val q = PriorityQueue<Product>()
     private val initTime = ZonedDateTime.now()
+    private val callStack = HashSet<String>()
 
     init {
         try {
@@ -41,7 +43,8 @@ class Cmd(private val save: String) {
 
     private fun findById(id: Long) = q.find { it.id() == id } ?: throw Error("cannot find product by id: $id")
 
-    private fun help() = io.printer.println(commands.filter { (_, b, _) -> b.isNotEmpty() }.joinToString("\n") { (_, b, _) -> b })
+    private fun help() =
+        io.printer.println(commands.filter { (_, b, _) -> b.isNotEmpty() }.joinToString("\n") { (_, b, _) -> b })
 
     private val commands: Array<Triple<String, String, (m: MatchResult) -> Unit>> = arrayOf(
         Triple("help", "help : output help for available commands") { help() },
@@ -92,7 +95,12 @@ class Cmd(private val save: String) {
             "execute_script file_name : read and execute the script from the specified file. The script contains commands in the same form in which they are entered by the user in interactive mode"
         ) {
             val lastIo = io
-            io = FileIo(it.groupValues[1])
+            val filename = it.groupValues[1]
+            if (callStack.contains(filename)) {
+                throw Error("file $filename was already called (recursion detected)")
+            }
+            callStack.add(filename)
+            io = FileIo(filename)
             start()
             io.printer.println("")
             io.printer.println("script done")

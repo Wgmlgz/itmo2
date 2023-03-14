@@ -1,0 +1,28 @@
+$dokka.format:javadoc-v1
+$dokka.linkExtension:html
+$dokka.location:////PointingToDeclaration/[root]/package-summary.html
+$dokka.location:/Cmd.Companion///PointingToDeclaration/[root]/Cmd.Companion.html
+$dokka.location:/Cmd///PointingToDeclaration/[root]/Cmd.html
+$dokka.location:/ConsoleIo///PointingToDeclaration/[root]/ConsoleIo.html
+$dokka.location:/Coordinates.Companion///PointingToDeclaration/[root]/Coordinates.Companion.html
+$dokka.location:/Coordinates///PointingToDeclaration/[root]/Coordinates.html
+$dokka.location:/Country///PointingToDeclaration/[root]/Country.html
+$dokka.location:/CsvInput///PointingToDeclaration/[root]/CsvInput.html
+$dokka.location:/EchoInput///PointingToDeclaration/[root]/EchoInput.html
+$dokka.location:/FileIo///PointingToDeclaration/[root]/FileIo.html
+$dokka.location:/GenericIo///PointingToDeclaration/[root]/GenericIo.html
+$dokka.location:/Input///PointingToDeclaration/[root]/Input.html
+$dokka.location:/Io.IoReadable///PointingToDeclaration/[root]/Io.IoReadable.html
+$dokka.location:/Io///PointingToDeclaration/[root]/Io.html
+$dokka.location:/MainKt///PointingToDeclaration/[root]/MainKt.html
+$dokka.location:/NullOutput///PointingToDeclaration/[root]/NullOutput.html
+$dokka.location:/Output///PointingToDeclaration/[root]/Output.html
+$dokka.location:/Person.Companion///PointingToDeclaration/[root]/Person.Companion.html
+$dokka.location:/Person///PointingToDeclaration/[root]/Person.html
+$dokka.location:/PrintWriterOutput///PointingToDeclaration/[root]/PrintWriterOutput.html
+$dokka.location:/Product.Companion///PointingToDeclaration/[root]/Product.Companion.html
+$dokka.location:/Product///PointingToDeclaration/[root]/Product.html
+$dokka.location:/ScannerInput///PointingToDeclaration/[root]/ScannerInput.html
+$dokka.location:/UnitOfMeasure///PointingToDeclaration/[root]/UnitOfMeasure.html
+
+
