@@ -1,8 +1,31 @@
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.net.DatagramPacket
-import java.net.DatagramSocket
-import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.SocketAddress
+import java.nio.ByteBuffer
+import java.nio.channels.DatagramChannel
+import java.util.concurrent.*
+
+
+class Interrupter(private val th1: Thread) : Runnable {
+    var wait = 100
+    override fun run() {
+        while (true) {
+            try {
+                wait = if (wait < 0) {
+                    th1.join()
+                    break
+                } else {
+                    Thread.sleep(wait.toLong())
+                    th1.interrupt()
+                    -1
+                }
+            } catch (e: java.lang.Exception) {
+                throw e
+            }
+        }
+    }
+}
 
 /**
  * Client
@@ -13,22 +36,34 @@ class Client {
     private val callStack = HashSet<String>()
 
 
-    private var socket: DatagramSocket = DatagramSocket()
-    private var address: InetAddress = InetAddress.getByName("localhost")
+    private var socket = DatagramChannel.open()
+    private var address: SocketAddress = InetSocketAddress("localhost", 4445);
 
     private fun sendEcho(msg: String): String {
-        var buf = msg.toByteArray()
-        val packet = DatagramPacket(buf, buf.size, address, 4445)
-        socket.send(packet)
-        buf = ByteArray(20000)
-        val resPacket = DatagramPacket(buf, buf.size)
-        socket.receive(resPacket)
-        return String(
-            resPacket.data, 0, resPacket.length
-        )
+        socket = DatagramChannel.open()
+        address = InetSocketAddress("localhost", 4445);
+        var buf = ByteBuffer.wrap(msg.toByteArray())
+        socket.send(buf, address)
+        buf = ByteBuffer.wrap(ByteArray(20000))
+        socket.receive(buf)
+        return String(buf.array(), 0, buf.position())
     }
 
-    private fun close() {
+    private fun sendWrapper(s: String): String {
+        val timeout: Long = 5
+        val executor = Executors.newCachedThreadPool()
+        val task = Callable { sendEcho(s) }
+        val future = executor.submit(task)
+        try {
+            return future[timeout, TimeUnit.SECONDS]
+        } catch (ex: TimeoutException) {
+            println("timeout ${timeout}s, run again? [y/N]")
+            if (readLine() == "y") return sendWrapper(s)
+            throw Exception("timeout")
+        }
+    }
+
+    fun close() {
         socket.close()
     }
 
@@ -74,7 +109,7 @@ class Client {
         Pair("and_if_max") { Command(CommandType.AndIfMax, Product.read(io)) },
         Pair("remove_greater") { Command(CommandType.RemoveGreater, Product.read(io)) },
         Pair("min_by_manufacture_cost") { Command(CommandType.MinByManufactureCost) },
-        Pair("count_less_than_owner $item") { Command(CommandType.CountLessThanOwner, Person.read(io)) },
+        Pair("count_less_than_owner +$item") { Command(CommandType.CountLessThanOwner, Person.read(io)) },
         Pair("filter_contains_name $item") { Command(CommandType.FilterContainsName, it.groupValues[1]) },
         Pair("$^") { return@Pair null }, // just newline
         Pair(".*") {
@@ -89,7 +124,7 @@ class Client {
             val command = cb(c)
             if (command !== null) {
                 val json = Json.encodeToString(command)
-                val res = sendEcho(json)
+                val res = sendWrapper(json)
                 io.printer.print(res)
             }
         } catch (e: Exception) {
@@ -117,7 +152,6 @@ class Client {
             cmd(io.scanner.nextLine())
             if (alive) io.printer.print("-> ")
         }
-        close()
     }
 }
 
@@ -125,4 +159,5 @@ class Client {
 fun main() {
     val client = Client()
     client.start()
+    client.close()
 }

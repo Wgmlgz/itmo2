@@ -55,8 +55,7 @@ class Product(
     private var id: Long,
     private val name: String,
     private val coordinates: Coordinates,
-    @Serializable(KZonedDateTimeSerializer::class)
-    private val creationDate: ZonedDateTime,
+    @Serializable(KZonedDateTimeSerializer::class) private val creationDate: ZonedDateTime,
     private val price: Double,
     private val manufactureCost: Float,
     private val unitOfMeasure: UnitOfMeasure?,
@@ -64,14 +63,22 @@ class Product(
 ) : Comparable<Product> {
     companion object : Io.IoReadable<Product> {
         var last_id: Long = 1
-        private fun getId() = ++last_id
+        fun getId() = ++last_id
 
         override fun read(io: Io, full: Boolean) = Product(
             (if (full) io.readVal("id") { it.toLong() } else getId()),
-            io.readVal("name") { (if (it == "") throw Exception("can't be empty") else it) },
-            io.readNested("coordinates") { Coordinates.read(io, full) },
-            (if (full) io.readVal("creationDate") { ZonedDateTime.parse(it) } else ZonedDateTime.now()),
-            io.readVal("price") { (if (it.toDouble() > 0) it.toDouble() else throw Exception("must be > 0")) },
+            io.readVal("name") {
+                (if (it == "") throw Exception("can't be empty") else it)
+            },
+            io.readNested("coordinates") {
+                Coordinates.read(io, full)
+            },
+            (if (full) io.readVal("creationDate") {
+                ZonedDateTime.parse(it)
+            } else ZonedDateTime.now()),
+            io.readVal("price") {
+                (if (it.toDouble() > 0) it.toDouble() else throw Exception("must be > 0"))
+            },
             io.readVal("manufactureCost") {
                 (if (it.toFloat() > 0) it.toFloat() else throw Exception("must be > 0"))
             },
@@ -136,15 +143,11 @@ class Product(
      */
     fun fields() = arrayOf(
         arrayOf(
-            id,
-            name
+            id, name
         ),
         coordinates.fields(),
         arrayOf(
-            creationDate,
-            price,
-            manufactureCost,
-            unitOfMeasure
+            creationDate, price, manufactureCost, unitOfMeasure
         ),
         owner.fields(),
     ).flatten()
@@ -163,13 +166,11 @@ class Product(
  */
 @Serializable
 class Coordinates(
-    private val x: Float,
-    private val y: Long
+    private val x: Float, private val y: Long
 ) {
     companion object : Io.IoReadable<Coordinates> {
-        override fun read(io: Io, full: Boolean) = Coordinates(
-            io.readVal("coordinates.x") { it.toFloat() },
-            io.readVal("coordinates.y") { it.toLong() })
+        override fun read(io: Io, full: Boolean) =
+            Coordinates(io.readVal("coordinates.x") { it.toFloat() }, io.readVal("coordinates.y") { it.toLong() })
     }
 
     /**
@@ -193,8 +194,7 @@ class Coordinates(
 @Serializable
 class Person(
     private val name: String,
-    @Serializable(KLocalDateTimeSerializer::class)
-    private val birthday: LocalDateTime?,
+    @Serializable(KLocalDateTimeSerializer::class) private val birthday: LocalDateTime?,
     private val nationality: Country
 ) : Comparable<Person> {
     override operator fun compareTo(other: Person) = name.compareTo(other.name)
@@ -210,18 +210,17 @@ class Person(
     )
 
     companion object : Io.IoReadable<Person> {
-        override fun read(io: Io, full: Boolean) =
-            Person(
-                io.readVal("owner.name") { (if (it == "") throw Exception("can't be empty") else it) },
-                io.readVal("owner.birthday (yyyy-MM-dd HH:mm)") {
-                    (if (it == "") null else LocalDateTime.parse(
-                        it, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                    ))
-                },
-                io.readVal(
-                    "owner.nationality (${enumValues<Country>().joinToString { it.name }})"
-                ) { Country.valueOf(it.uppercase()) },
-            )
+        override fun read(io: Io, full: Boolean) = Person(
+            io.readVal("owner.name") { (if (it == "") throw Exception("can't be empty") else it) },
+            io.readVal("owner.birthday (yyyy-MM-dd HH:mm)") {
+                (if (it == "") null else LocalDateTime.parse(
+                    it, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                ))
+            },
+            io.readVal(
+                "owner.nationality (${enumValues<Country>().joinToString { it.name }})"
+            ) { Country.valueOf(it.uppercase()) },
+        )
     }
 }
 
@@ -229,14 +228,12 @@ class Person(
  * Unit of measure from technical task
  */
 enum class UnitOfMeasure {
-    SQUARE_METERS,
-    LITERS,
-    GRAMS }
+    SQUARE_METERS, LITERS, GRAMS
+}
 
 /**
  * Country from technical task
  */
 enum class Country {
-    CHINA,
-    SOUTH_KOREA,
-    JAPAN }
+    CHINA, SOUTH_KOREA, JAPAN
+}
