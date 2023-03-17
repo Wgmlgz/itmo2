@@ -7,49 +7,11 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.util.*
 import org.jetbrains.exposed.sql.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
+import kotlin.concurrent.thread
 
-
-/**
- * Cmd handles main logic
- *
- * @property save path to save file
- * @constructor Create empty Cmd
- */
-class Server(private val dbHandler: DBHandler) {
-    private var socket: DatagramSocket = DatagramSocket(4445)
-    private var running = false
-    private val server = CmdServer(dbHandler)
-
-    fun run() {
-        running = true
-        while (running) {
-            val buf = ByteArray(20000)
-            val packet = DatagramPacket(buf, buf.size)
-            socket.receive(packet)
-            val address = packet.address
-            val port = packet.port
-            var received = String(packet.data, 0, packet.length)
-            received = processRequest(received)
-            val out = received.encodeToByteArray()
-            val res = DatagramPacket(out, out.size, address, port)
-            socket.send(res)
-        }
-        socket.close()
-    }
-
-    @OptIn(InternalSerializationApi::class)
-    private fun processRequest(s: String): String {
-        val res = try {
-            val json = Json.decodeStringToJsonTree(JsonElement.serializer(), s)
-            print(json)
-            server.runCmd(json)
-        } catch (e: Exception) {
-            println(e)
-            e.message ?: "unknown error"
-        }
-        return res
-    }
-}
 
 fun main(args: Array<String>) {
     val dbHandler = DBHandler(

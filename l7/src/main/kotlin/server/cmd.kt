@@ -2,6 +2,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.time.ZonedDateTime
 import java.util.*
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
+
 
 /**
  * Cmd handles main logic
@@ -11,6 +14,7 @@ import java.util.*
 class CmdServer(private val dbHandler: DBHandler) {
     private var io: Io = CaptureIo()
     private var q = PriorityQueue<Product>()
+    private val lock: Lock = ReentrantLock()
     private val initTime = ZonedDateTime.now()
 
     /**
@@ -148,8 +152,9 @@ class CmdServer(private val dbHandler: DBHandler) {
                 val user = (request.args.last() as UserArg).user;
                 if (dbHandler.checkLogged(user).isEmpty()) throw Exception("you aren't logged in")
             }
-
+            lock.lock()
             commands[request.type]?.invoke(request)
+            lock.unlock()
         } catch (e: Exception) {
             io.printer.println("command failed with error: ${e.message}")
         }
