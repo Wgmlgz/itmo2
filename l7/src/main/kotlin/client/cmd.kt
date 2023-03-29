@@ -8,7 +8,7 @@ class CmdClient(val client: Client) {
     private var io: Io = ConsoleIo()
     private var alive = true
     private val callStack = HashSet<String>()
-    private var user = User("aboba", "666")
+    private var user = User("", "")
 
     companion object {
         const val id = "(\\d+)"
@@ -24,7 +24,7 @@ class CmdClient(val client: Client) {
             help()
             null
         },
-        Triple("login $item $item", "login <login> <password> : login with credentials") {
+        Triple("login +$item +$item", "login <login> <password> : login with credentials") {
             user = User(it.groupValues[1], it.groupValues[2])
             Request(Routes.Login, user)
         },

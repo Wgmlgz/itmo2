@@ -56,7 +56,8 @@ class Server(private val dbHandler: DBHandler) {
     private fun processRequest(s: String): String {
         val res = try {
             val json = Json.decodeStringToJsonTree(JsonElement.serializer(), s)
-            print(json)
+            println(json)
+            println("???")
             server.runCmd(json)
         } catch (e: Exception) {
             println(e)

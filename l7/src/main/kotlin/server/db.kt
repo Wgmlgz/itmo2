@@ -47,6 +47,7 @@ class DBHandler(val db: Database) {
 
     fun checkLogin(user: User): Int {
         var n = 0
+        println(user.login)
         transaction {
             n = Users.select { (Users.login eq user.login) }.count()
                 .toInt()

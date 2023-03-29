@@ -36,15 +36,24 @@ class CmdServer(private val dbHandler: DBHandler) {
         mapOf(
             /** auth routes */
             Routes.Register to {
-                val user = (it.args.last() as UserArg).user
-                if (dbHandler.checkLogin(user) != 0) throw Exception("user with this credentials already exists")
+                val user = (it.args[0] as UserArg).user
+                println(user)
+                if (dbHandler.checkLogin(user) != 0) {
+                    println("huh?")
+                    throw Exception("user with this credentials already exists")
+                }
                 dbHandler.register(user)
+                println("huh?")
                 io.printer.println("registered user ${user.login}")
 
             },
             Routes.Login to {
-                val user = (it.args.removeLast() as UserArg).user;
-                if (dbHandler.checkLogged(user).isEmpty()) throw Exception("invalid credentials")
+                val user = (it.args[0] as UserArg).user;
+                println(user)
+                if (dbHandler.checkLogged(user).isEmpty()) {
+                    println("huh?")
+                    throw Exception("invalid credentials")
+                }
                 io.printer.println("logged in as ${user.login}")
             },
             /** const commands */
@@ -90,14 +99,12 @@ class CmdServer(private val dbHandler: DBHandler) {
             Routes.RemoveById to {
                 val old = findById((it.args[0] as StrArg).str.toLong())
                 dbHandler.deleteById(old.id, it.args.last())
-                io.printer.println("removed")
                 sync()
             },
 
             Routes.RemoveFirst to {
                 val old = q.poll()
                 dbHandler.deleteById(old.id, it.args.last())
-                io.printer.println("removed")
                 sync()
             },
             Routes.AddIfMax to {
@@ -146,15 +153,18 @@ class CmdServer(private val dbHandler: DBHandler) {
 
     fun runCmd(json: JsonElement): String {
         try {
+            println("plspls")
             val request = Json.decodeFromJsonElement(Request.serializer(), json)
-
+            println(request.type)
             if (needsAuth[request.type]!!) {
+                println("with auth ")
+
                 val user = (request.args.last() as UserArg).user;
                 if (dbHandler.checkLogged(user).isEmpty()) throw Exception("you aren't logged in")
             }
-            lock.lock()
+            lock.lock();
             commands[request.type]?.invoke(request)
-            lock.unlock()
+            lock.unlock();
         } catch (e: Exception) {
             io.printer.println("command failed with error: ${e.message}")
         }
