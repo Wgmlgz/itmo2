@@ -10,6 +10,7 @@ import java.util.*
 object Users : IntIdTable() {
     val login = text("login").uniqueIndex()
     val passwordHash = binary("passwordHash")
+    val refreshToken = text("refreshToken").nullable()
 }
 
 object Products : IntIdTable() {
@@ -33,58 +34,54 @@ class DBHandler(val db: Database) {
         }
     }
 
-    fun fetchUserId(arg: Arg) = checkLogged((arg as UserArg).user)[0].id!!
+    fun getRefresh(user: User) =
+        transaction {
+            Users.select { (Users.login eq user.login) and (Users.passwordHash eq user.passwordHash) }
+                .map { userFromRow(it) }
+        }[0].refreshToken
 
-    fun register(user: User) {
+    fun setRefresh(user: User, refreshToken: String) =
+        transaction {
+            Users.update({ (Users.login eq user.login) and (Users.passwordHash eq user.passwordHash) })
+            {
+                it[Users.refreshToken] = refreshToken
+            }
+        }
+
+    fun register(user: User) =
         transaction {
             Users.insert {
                 it[login] = user.login
                 it[passwordHash] = user.passwordHash
             }
         }
-    }
 
 
-    fun checkLogin(user: User): Int {
-        var n = 0
-        println(user.login)
+    fun checkLogin(user: User) =
         transaction {
-            n = Users.select { (Users.login eq user.login) }.count()
+            Users.select { (Users.login eq user.login) }.count()
                 .toInt()
         }
-        return n
-    }
 
-    fun checkLogged(user: User): List<User> {
-        var users: List<User> = listOf()
+    fun checkLogged(user: User) =
         transaction {
-            users = Users.select { (Users.login eq user.login) and (Users.passwordHash eq user.passwordHash) }
+            Users.select { (Users.login eq user.login) and (Users.passwordHash eq user.passwordHash) }
                 .map { userFromRow(it) }
         }
-        return users
-    }
 
-    fun deleteById(id: Long, arg: Arg) {
+    fun deleteById(id: Long, userId: Int) =
         transaction {
-            val userId = fetchUserId(arg)
             Products.deleteWhere { (Products.id eq id.toInt()) and (Products.userId eq userId) }
         }
-    }
 
-    fun removeGreater(product: Product, arg: Arg): Int {
-        var res = 0
+    fun removeGreater(product: Product, userId: Int) =
         transaction {
-            val userId = fetchUserId(arg )
-            res = Products.deleteWhere {( name less product.name ) and (Products.userId eq userId)  }
+            Products.deleteWhere { (name less product.name) and (Products.userId eq userId) }
         }
-        return res
-    }
 
-    fun updateById(product: Product, id: Long, arg: Arg) {
+    fun updateById(product: Product, id: Long, userId: Int) =
         transaction {
-            val userId = fetchUserId(arg)
-
-            Products.update({ (Products.id eq id.toInt()) and (Products.userId eq userId)  }) {
+            Products.update({ (Products.id eq id.toInt()) and (Products.userId eq userId) }) {
                 it[name] = product.name
                 it[coordinates_x] = product.coordinates.x
                 it[coordinates_y] = product.coordinates.y
@@ -97,12 +94,9 @@ class DBHandler(val db: Database) {
                 it[owner_nationality] = product.owner.nationality.toString()
             }
         }
-    }
 
-    fun insert(product: Product, arg: Arg) {
+    fun insert(product: Product, newUserId: Int) {
         transaction {
-            val newUserId = fetchUserId(arg)
-
             Products.insert {
                 it[userId] = newUserId
                 it[name] = product.name
@@ -117,7 +111,6 @@ class DBHandler(val db: Database) {
                 it[owner_nationality] = product.owner.nationality.toString()
             }
         }
-
     }
 
     fun fetch(): PriorityQueue<Product> {
@@ -133,6 +126,7 @@ class DBHandler(val db: Database) {
             id = row[Users.id].value,
             login = row[Users.login],
             passwordHash = row[Users.passwordHash],
+            refreshToken = row[Users.refreshToken]
         )
 
         fun fromRow(row: ResultRow) = Product(

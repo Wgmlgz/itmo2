@@ -8,17 +8,6 @@ interface Input {
 }
 
 /**
- * Csv input implements input for csv line
- *
- * @param csv_str csv line
- */
-class CsvInput(csv_str: String) : Input {
-    private val partitioned = csv_str.split(",").iterator()
-    override fun hasNextLine() = partitioned.hasNext()
-    override fun nextLine() = partitioned.next()
-}
-
-/**
  * Scanner input  `Input` interface wrapper for `Scanner`
  *
  * @property scanner
@@ -47,11 +36,6 @@ interface Output {
     fun println(s: String) {}
     fun print(s: String) {}
 }
-
-/**
- * Null output - outputs to nothing
- */
-class NullOutput : Output
 
 /**
  * Print writer output `Output` wrapper for `PrintWriter`

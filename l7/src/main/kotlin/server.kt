@@ -5,7 +5,7 @@ fun main(args: Array<String>) {
     val dbHandler = DBHandler(
         Database.connect(
             "jdbc:postgresql://localhost:5432/test", driver = "org.postgresql.Driver",
-            user = "sus", password = "sus"
+            user = "postgres", password = "cat"
         )
     )
 

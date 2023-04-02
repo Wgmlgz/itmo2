@@ -8,7 +8,8 @@ class CmdClient(val client: Client) {
     private var io: Io = ConsoleIo()
     private var alive = true
     private val callStack = HashSet<String>()
-    private var user = User("", "")
+    private var token: String? = null
+    private var refresh: String? = null
 
     companion object {
         const val id = "(\\d+)"
@@ -16,115 +17,169 @@ class CmdClient(val client: Client) {
     }
 
     private fun help() =
-        io.printer.println(commands.filter { it.second.isNotEmpty() }.map { it.second }.joinToString("\n"))
+        io.printer.println(commands.filter { it.help.isNotEmpty() }.map { it.help }.joinToString("\n"))
+
+    class Command {
+        val regex: String
+        val help: String
+        val processor: (m: MatchResult) -> Packet?
+        var after: ((res: Packet) -> Unit)? = null
+
+        constructor(
+            regex: String,
+            help: String,
+            processor: (m: MatchResult) -> Packet?,
+        ) {
+            this.regex = regex
+            this.help = help
+            this.processor = processor
+        }
+
+        constructor(
+            regex: String,
+            help: String,
+            processor: (m: MatchResult) -> Packet?,
+            after: ((res: Packet) -> Unit)?
+        ) {
+            this.regex = regex
+            this.help = help
+            this.processor = processor
+            this.after = after
+        }
+    }
+
 
     /** Parse command and serialize to json */
-    private val commands: Array<Triple<String, String, (m: MatchResult) -> Request?>> = arrayOf(
-        Triple("help", "help : output help for available commands") {
-            help()
-            null
-        },
-        Triple("login +$item +$item", "login <login> <password> : login with credentials") {
-            user = User(it.groupValues[1], it.groupValues[2])
-            Request(Routes.Login, user)
-        },
-        Triple("register $item $item", "register <login> <password> : register with credentials") {
-            Request(Routes.Register, User(it.groupValues[1], it.groupValues[2]))
-        },
-        Triple("help", "help : output help for available commands") {
-            help()
-            null
-        },
-        Triple(
-            "info",
-            "info : output information about the collection (type, initialization date, number of items, etc.) to the standard output stream"
-        ) { Request(Routes.Info) },
-        Triple(
-            "show",
-            "show : output to the standard output stream all the elements of the collection in a string representation"
-        ) { Request(Routes.Show) },
-        Triple("add", "add {element} : add a new item to the collection") {
-            Request(
-                Routes.Add,
-                Product.read(io)
-            )
-        },
-        Triple(
-            "update $id",
-            "update id {element} : update the value of a collection item whose id is equal to the specified one"
-        ) {
-            Request(Routes.Update, mutableListOf(StrArg(it.groupValues[1]), ProductArg(Product.read(io))))
-        },
-        Triple("remove_by_id $id", "remove_by_id id : delete an item from the collection by its id") {
-            Request(
-                Routes.RemoveById,
-                it.groupValues[1]
-            )
-        },
-        Triple("clear", "clear : clear the collection") { Request(Routes.Clear) },
-        Triple(
-            "execute_script $item",
-            "execute_script file_name : read and execute the script from the specified file. The script contains commands in the same form in which they are entered by the user in interactive mode"
-        ) {
-            val lastIo = io
-            val filename = it.groupValues[1]
-            if (callStack.contains(filename)) {
-                io.printer.println("file $filename was already called (recursion detected)")
-                return@Triple null
-            }
-            callStack.add(filename)
-            io = FileIo(filename)
-            start()
-            io.printer.println("")
-            io.printer.println("script done")
-            io = lastIo
-            null
-        },
-        Triple("exit", "exit : terminate the program (without saving to a file)") {
-            io.printer.println("finishing...")
-            alive = false
-            null
-        },
-        Triple(
-            "remove_first",
-            "remove_first : delete the first item from the collection"
-        ) { Request(Routes.RemoveFirst) },
-        Triple(
-            "and_if_max",
-            "add_if_max {element} : add a new item to the collection if its value exceeds the value of the largest item in this collection"
-        ) { Request(Routes.AddIfMax, Product.read(io)) },
-        Triple(
-            "remove_greater",
-            "remove_greater {element} : remove all items from the collection that exceed the specified"
-        ) { Request(Routes.RemoveGreater, Product.read(io)) },
-        Triple(
-            "min_by_manufacture_cost",
-            "min_by_manufacture_cost : output any object from the collection whose value of the manufactureCost field is minimal"
-        ) { Request(Routes.MinByManufactureCost) },
-        Triple(
-            "count_less_than_owner$item",
-            "count_less_than_owner owner : print the number of elements whose owner field value is less than the specified one"
-        ) { Request(Routes.CountLessThanOwner, Person.read(io)) },
-        Triple(
-            "filter_contains_name $item",
-            "filter_contains_name name : output elements whose name field value contains the specified substring"
-        ) { Request(Routes.FilterContainsName, it.groupValues[1]) },
-        Triple("$^", "") { return@Triple null }, // just newline
-        Triple(".*", "") {
-            io.printer.println("unknown command")
-            null
-        },
-    )
+    private val commands: Array<Command> =
+        arrayOf<Command>(
+            Command("help", "help : output help for available commands") {
+                help()
+                null
+            },
+            Command("login +$item +$item", "login <login> <password> : login with credentials", {
+                val user = User(it.groupValues[1], it.groupValues[2])
+                Packet(Routes.Login, user)
+            }) {
+                token = (it.headers["token"] as StrArg).str
+                refresh = (it.headers["refreshToken"] as StrArg).str
+            },
+            Command("refresh", "refreshes access token by refresh token", {
+                Packet(Routes.Refresh, refresh!!)
+            }) {
+                if (it.code == ResponseCode.OK) {
+                    token = (it.headers["token"] as StrArg).str
+                    refresh = (it.headers["refreshToken"] as StrArg).str
+                }
+            },
+            Command("register $item $item", "register <login> <password> : register with credentials") {
+                Packet(Routes.Register, User(it.groupValues[1], it.groupValues[2]))
+            },
+            Command("help", "help : output help for available commands") {
+                help()
+                null
+            },
+            Command(
+                "info",
+                "info : output information about the collection (type, initialization date, number of items, etc.) to the standard output stream"
+            ) { Packet(Routes.Info) },
+            Command(
+                "show",
+                "show : output to the standard output stream all the elements of the collection in a string representation"
+            ) { Packet(Routes.Show) },
+            Command("add", "add {element} : add a new item to the collection") {
+                Packet(
+                    Routes.Add,
+                    Product.read(io)
+                )
+            },
+            Command(
+                "update $id",
+                "update id {element} : update the value of a collection item whose id is equal to the specified one"
+            ) {
+                Packet(Routes.Update, mutableListOf(StrArg(it.groupValues[1]), ProductArg(Product.read(io))))
+            },
+            Command("remove_by_id $id", "remove_by_id id : delete an item from the collection by its id") {
+                Packet(
+                    Routes.RemoveById,
+                    it.groupValues[1]
+                )
+            },
+            Command("clear", "clear : clear the collection") { Packet(Routes.Clear) },
+            Command(
+                "execute_script $item",
+                "execute_script file_name : read and execute the script from the specified file. The script contains commands in the same form in which they are entered by the user in interactive mode"
+            ) {
+                val lastIo = io
+                val filename = it.groupValues[1]
+                if (callStack.contains(filename)) {
+                    io.printer.println("file $filename was already called (recursion detected)")
+                    return@Command null
+                }
+                callStack.add(filename)
+                io = FileIo(filename)
+                start()
+                io.printer.println("")
+                io.printer.println("script done")
+                io = lastIo
+                null
+            },
+            Command("exit", "exit : terminate the program (without saving to a file)") {
+                io.printer.println("finishing...")
+                alive = false
+                null
+            },
+            Command(
+                "remove_first",
+                "remove_first : delete the first item from the collection"
+            ) { Packet(Routes.RemoveFirst) },
+            Command(
+                "and_if_max",
+                "add_if_max {element} : add a new item to the collection if its value exceeds the value of the largest item in this collection"
+            ) { Packet(Routes.AddIfMax, Product.read(io)) },
+            Command(
+                "remove_greater",
+                "remove_greater {element} : remove all items from the collection that exceed the specified"
+            ) { Packet(Routes.RemoveGreater, Product.read(io)) },
+            Command(
+                "min_by_manufacture_cost",
+                "min_by_manufacture_cost : output any object from the collection whose value of the manufactureCost field is minimal"
+            ) { Packet(Routes.MinByManufactureCost) },
+            Command(
+                "count_less_than_owner$item",
+                "count_less_than_owner owner : print the number of elements whose owner field value is less than the specified one"
+            ) { Packet(Routes.CountLessThanOwner, Person.read(io)) },
+            Command(
+                "filter_contains_name $item",
+                "filter_contains_name name : output elements whose name field value contains the specified substring"
+            ) { Packet(Routes.FilterContainsName, it.groupValues[1]) },
+            Command("$^", "") { return@Command null }, // just newline
+            Command(".*", "") {
+                io.printer.println("unknown command")
+                null
+            },
+        )
 
-    private fun runCmd(r: String, input: String, cb: (m: MatchResult) -> Request?): Boolean {
+    private fun runCmd(cmd: Command, input: String, depth: Int = 0): Boolean {
+        if (depth > 2) return false;
         try {
-            val c: MatchResult = Regex(r).find(input) ?: return false
-            val request = cb(c)
+            val c: MatchResult = Regex(cmd.regex).find(input) ?: return false
+            val request = cmd.processor(c)
             if (request !== null) {
-                request.args.add(UserArg(user))
-                val json = Json.encodeToString(request)
-                val res = client.send(json)
-                io.printer.print(res)
+                if (token !== null) {
+                    request.headers["authorization"] = StrArg(token!!)
+                }
+                val res = client.send(request)
+                cmd.after?.invoke(res)
+
+//                io.printer.println(res.toJson())
+//                io.printer.println(res.code.toString())
+
+                if (res.code == ResponseCode.LOGIN_TIMEOUT) {
+                    cmd("refresh") // vary bad code lol
+                    runCmd(cmd, input, depth + 1)
+                } else {
+                    io.printer.print((res.args[0] as StrArg).str)
+                }
             }
         } catch (e: Exception) {
             io.printer.println("command failed with error: ${e.message}")
@@ -138,7 +193,9 @@ class CmdClient(val client: Client) {
      * @param input
      */
     private fun cmd(input: String) {
-        for ((r, _, cb) in commands) if (runCmd(r, input, cb)) break
+        for (command in commands)
+            if (runCmd(command, input))
+                break
     }
 
     /**

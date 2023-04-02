@@ -13,17 +13,27 @@ class Client {
     private var socket = DatagramChannel.open()
     private var address: SocketAddress = InetSocketAddress("localhost", 4445);
 
-    private fun sendEcho(msg: String): String {
+    private fun sendEcho(msg: Packet): Packet {
         socket = DatagramChannel.open()
         address = InetSocketAddress("localhost", 4445);
-        var buf = ByteBuffer.wrap(msg.toByteArray())
+        val buf = ByteBuffer.wrap(msg.toJson().toByteArray())
         socket.send(buf, address)
-        buf = ByteBuffer.wrap(ByteArray(20000))
-        socket.receive(buf)
-        return String(buf.array(), 0, buf.position())
+
+        var res = "";
+        while (true) {
+            val bufChunk = ByteBuffer.wrap(ByteArray(chuckSize))
+            socket.receive(bufChunk)
+            val chunk = String(bufChunk.array(), 0, bufChunk.position())
+            res += chunk
+            if (chunk.isEmpty()) {
+                break
+            }
+        }
+
+        return Packet.fromJson(res)
     }
 
-    fun send(s: String): String {
+    fun send(s: Packet): Packet {
         val timeout: Long = 5
         val executor = Executors.newCachedThreadPool()
         val task = Callable { sendEcho(s) }

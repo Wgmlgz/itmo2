@@ -1,3 +1,4 @@
+import io.ktor.http.*
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -35,16 +36,23 @@ class Server(private val dbHandler: DBHandler) {
                     println(it)
                     val address = packet.address
                     val port = packet.port
-                    var received = String(packet.data, 0, packet.length)
+                    val received = String(packet.data, 0, packet.length)
 
-                    val queue = LinkedBlockingQueue<String>()
-                    thread { queue.put(processRequest(received)) }
-                    received = queue.take()
+                    val queue = LinkedBlockingQueue<Packet>()
+                    thread {
+                        val toSend = processRequest(received)
+                        queue.put(toSend)
+                    }
 
                     thread {
-                        val out = received.encodeToByteArray()
-                        val res = DatagramPacket(out, out.size, address, port)
-                        socket.send(res)
+                        val toSend = queue.take().toJson()
+                        val chunks = toSend.chunked(chuckSize) as ArrayList<String>;
+                        chunks.add("")
+                        chunks.forEach {
+                            val out = it.encodeToByteArray()
+                            val res = DatagramPacket(out, out.size, address, port)
+                            socket.send(res)
+                        }
                     }
                 }
             }
@@ -53,15 +61,17 @@ class Server(private val dbHandler: DBHandler) {
     }
 
     @OptIn(InternalSerializationApi::class)
-    private fun processRequest(s: String): String {
+    private fun processRequest(s: String): Packet {
         val res = try {
             val json = Json.decodeStringToJsonTree(JsonElement.serializer(), s)
             println(json)
             println("???")
             server.runCmd(json)
-        } catch (e: Exception) {
+        } catch (e: StackOverflowError) {
+            println(228)
             println(e)
-            e.message ?: "unknown error"
+            val res = e.message ?: "unknown error"
+            Packet(null, mutableListOf(StrArg(res)), mutableMapOf())
         }
         return res
     }
