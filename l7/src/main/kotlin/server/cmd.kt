@@ -1,7 +1,5 @@
-import jdk.incubator.vector.VectorOperators.Test
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import org.postgresql.shaded.com.ongres.scram.common.bouncycastle.pbkdf2.Pack
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.locks.Lock
@@ -9,7 +7,6 @@ import java.util.concurrent.locks.ReentrantLock
 
 /*
  * Cmd handles main logic
- *
  * @constructor Create empty Cmd
  */
 class CmdServer(private val dbHandler: DBHandler) {
@@ -20,9 +17,6 @@ class CmdServer(private val dbHandler: DBHandler) {
 
     private val auth = Auth(dbHandler)
 
-    /**
-     * syncs collection from db and between clients on change
-     */
     private fun sync() {
         q = dbHandler.fetch()
     }
@@ -196,17 +190,14 @@ class CmdServer(private val dbHandler: DBHandler) {
             if (needsAuth[packet.type]!!)
                 authorize(packet)
 
-            println("11")
             val cmdOutput = commands[packet.type]!!.invoke(packet)
             if (cmdOutput != null) res = cmdOutput
             res.type = packet.type
-            println("22")
         } catch (e: TestException) {
             res.code = e.code
-            e.message?.let { io.printer.println(it) }
+            io.printer.println(e.message!!)
         }
         catch (e: Exception) {
-            println(e)
             io.printer.println(e.message!!)
         }
         finally {

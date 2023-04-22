@@ -64,8 +64,8 @@ class Product(
     val owner: Person
 ) : Comparable<Product> {
     companion object : Io.IoReadable<Product> {
-        var last_id: Long = 1
-        fun getId() = ++last_id
+        private var last_id: Long = 1
+        private fun getId() = ++last_id
 
         override fun read(io: Io, full: Boolean) = Product(
             (if (full) io.readVal("id") { it.toLong() } else getId()),
@@ -105,36 +105,12 @@ class Product(
         )
     }
 
-    /**
-     * Id
-     *
-     */
     fun id() = id
-
-    /**
-     * Manufacture cost
-     *
-     */
     fun manufactureCost() = manufactureCost
-
-    /**
-     * Owner
-     *
-     */
     fun owner() = owner
-
-    /**
-     * Name contains
-     *
-     * @param pattern
-     */
     fun nameContains(pattern: String) = name.contains(pattern)
 
-    /**
-     * Fields
-     *
-     */
-    fun fields() = arrayOf(
+    private fun fields() = arrayOf(
         arrayOf(
             id, name
         ),
@@ -168,10 +144,6 @@ class Coordinates(
             Coordinates(io.readVal("coordinates.x") { it.toFloat() }, io.readVal("coordinates.y") { it.toLong() })
     }
 
-    /**
-     * Fields
-     *
-     */
     fun fields() = arrayOf(
         x,
         y,
@@ -194,10 +166,6 @@ class Person(
 ) : Comparable<Person> {
     override operator fun compareTo(other: Person) = name.compareTo(other.name)
 
-    /**
-     * Fields
-     *
-     */
     fun fields() = arrayOf(
         name,
         birthday,

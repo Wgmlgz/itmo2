@@ -1,10 +1,7 @@
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-
 /**
  * CmdClient
  */
-class CmdClient(val client: Client) {
+class CmdClient(private val client: Client) {
     private var io: Io = ConsoleIo()
     private var alive = true
     private val callStack = HashSet<String>()
@@ -14,6 +11,7 @@ class CmdClient(val client: Client) {
     companion object {
         const val id = "(\\d+)"
         const val item = "(\\S+)"
+        const val RETRIES = 1
     }
 
     private fun help() =
@@ -60,8 +58,10 @@ class CmdClient(val client: Client) {
                 val user = User(it.groupValues[1], it.groupValues[2])
                 Packet(Routes.Login, user)
             }) {
-                token = (it.headers["token"] as StrArg).str
-                refresh = (it.headers["refreshToken"] as StrArg).str
+                if (it.headers["token"] !== null && it.headers["refreshToken"] !== null) {
+                  token = (it.headers["token"] as StrArg).str
+                  refresh = (it.headers["refreshToken"] as StrArg).str
+                }
             },
             Command("refresh", "refreshes access token by refresh token", {
                 Packet(Routes.Refresh, refresh!!)
@@ -159,9 +159,8 @@ class CmdClient(val client: Client) {
             },
         )
 
-    private fun runCmd(cmd: Command, input: String, depth: Int = 0): Boolean {
-        if (depth > 2) return false;
-        try {
+    private fun runCmd(cmd: Command, input: String, depth: Int = 1, print: Boolean = true): Boolean {
+//        try {
             val c: MatchResult = Regex(cmd.regex).find(input) ?: return false
             val request = cmd.processor(c)
             if (request !== null) {
@@ -174,16 +173,16 @@ class CmdClient(val client: Client) {
 //                io.printer.println(res.toJson())
 //                io.printer.println(res.code.toString())
 
-                if (res.code == ResponseCode.LOGIN_TIMEOUT) {
-                    cmd("refresh") // vary bad code lol
-                    runCmd(cmd, input, depth + 1)
-                } else {
+                if (res.code == ResponseCode.LOGIN_TIMEOUT && depth <= RETRIES) {
+                    cmd("refresh", depth + 1, false) // vary bad code lol
+                    return runCmd(cmd, input, depth + 99999)
+                } else if (print) {
                     io.printer.print((res.args[0] as StrArg).str)
                 }
             }
-        } catch (e: Exception) {
-            io.printer.println("command failed with error: ${e.message}")
-        }
+//        } catch (e: Exception) {
+//            io.printer.println("command failed with error: ${e.message}")
+//        }
         return true
     }
 
@@ -192,9 +191,9 @@ class CmdClient(val client: Client) {
      *
      * @param input
      */
-    private fun cmd(input: String) {
+    private fun cmd(input: String, depth: Int = 1, print: Boolean = true) {
         for (command in commands)
-            if (runCmd(command, input))
+            if (runCmd(command, input, depth, print))
                 break
     }
 
