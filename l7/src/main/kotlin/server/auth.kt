@@ -15,7 +15,7 @@ class Auth(private val dbHandler: DBHandler) {
         try {
             val jwt = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jws)
             val user = jwt.body["user"] as String
-            return (Json.decodeFromString(Arg.serializer(), user) as UserArg).user
+            return (Json.decodeFromString(UserArg.serializer(), user)).user
         } catch (e: ExpiredJwtException) {
             throw TestException(ResponseCode.LOGIN_TIMEOUT, e)
         } catch (e: SignatureException) {
@@ -24,10 +24,11 @@ class Auth(private val dbHandler: DBHandler) {
     }
 
 
-    private fun genToken(arg: Arg, key: Key, field: Int, amount: Int): String {
+    private fun genToken(arg: UserArg, key: Key, field: Int, amount: Int): String {
         val calendar = Calendar.getInstance()
         calendar.add(field, amount)
-
+//        var arg = Json.decodeFromString(UserArg.serializer(), Json.encodeToString(arg))
+        arg.user.refreshToken = null
         return Jwts.builder().setClaims(mapOf("user" to Json.encodeToString(arg)))
             .setExpiration(calendar.time)
             .signWith(key)

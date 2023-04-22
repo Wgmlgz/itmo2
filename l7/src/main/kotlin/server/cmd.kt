@@ -205,10 +205,10 @@ class CmdServer(private val dbHandler: DBHandler) {
             res.code = e.code
             e.message?.let { io.printer.println(it) }
         }
-//        catch (e: Exception) {
-//            println(e)
-//            io.printer.println(e.message!!)
-//        }
+        catch (e: Exception) {
+            println(e)
+            io.printer.println(e.message!!)
+        }
         finally {
             lock.unlock();
         }

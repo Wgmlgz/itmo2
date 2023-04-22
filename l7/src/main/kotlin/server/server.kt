@@ -63,11 +63,12 @@ class Server(private val dbHandler: DBHandler) {
     @OptIn(InternalSerializationApi::class)
     private fun processRequest(s: String): Packet {
         val res = try {
+            println(s)
             val json = Json.decodeStringToJsonTree(JsonElement.serializer(), s)
             println(json)
             println("???")
             server.runCmd(json)
-        } catch (e: StackOverflowError) {
+        } catch (e: Exception) {
             println(228)
             println(e)
             val res = e.message ?: "unknown error"
