@@ -63,6 +63,11 @@ class CmdClient(private val client: Client) {
                   refresh = (it.headers["refreshToken"] as StrArg).str
                 }
             },
+            Command("logout", "logout : login with credentials") {
+                token = null
+                refresh = null
+                null
+            },
             Command("refresh", "refreshes access token by refresh token", {
                 Packet(Routes.Refresh, refresh!!)
             }) {

@@ -26,7 +26,7 @@ class CmdServer(private val dbHandler: DBHandler) {
         (io.printer as CaptureOutput).capture()
     }
 
-    private fun findById(id: Long) = q.find { it.id() == id } ?: throw Error("cannot find product by id: $id")
+    private fun findById(id: Long) = q.find { it.id() == id } ?: throw Exception("cannot find product by id: $id")
 
     private fun authorize(req: Packet): Int {
         val authorization = try {
@@ -118,21 +118,31 @@ class CmdServer(private val dbHandler: DBHandler) {
         Routes.Update to {
             val old = findById((it.args[0] as StrArg).str.toLong())
             val product = (it.args[1] as ProductArg).product
-            dbHandler.updateById(product, old.id, authorize(it))
-            io.printer.println("updated")
+            val n = dbHandler.updateById(product, old.id, authorize(it))
+            if (n == 0)
+                throw TestException(ResponseCode.FORBIDDEN, Exception("you cannot modify this element"))
+            io.printer.println("updated $n products")
             sync()
             null
         },
         Routes.RemoveById to {
             val old = findById((it.args[0] as StrArg).str.toLong())
-            dbHandler.deleteById(old.id, authorize(it))
+            val n = dbHandler.deleteById(old.id, authorize(it))
+            if (n == 0)
+                throw TestException(ResponseCode.FORBIDDEN, Exception("you cannot modify this element"))
+
+            io.printer.println("removed $n products")
             sync()
             null
         },
 
         Routes.RemoveFirst to {
             val old = q.poll()
-            dbHandler.deleteById(old.id, authorize(it))
+            val n = dbHandler.deleteById(old.id, authorize(it))
+            if (n == 0)
+                throw TestException(ResponseCode.FORBIDDEN, Exception("you cannot modify this element"))
+
+            io.printer.println("removed $n products")
             sync()
             null
         },
@@ -149,8 +159,10 @@ class CmdServer(private val dbHandler: DBHandler) {
         },
         Routes.RemoveGreater to { command ->
             val product = (command.args[0] as ProductArg).product
-            if (dbHandler.removeGreater(product, authorize(command)) != 0)
+            val n = dbHandler.removeGreater(product, authorize(command))
+            if (n != 0)
                 io.printer.println("all elements are less then given ")
+            io.printer.println("removed $n products")
             sync()
             null
         },
@@ -198,6 +210,10 @@ class CmdServer(private val dbHandler: DBHandler) {
             io.printer.println(e.message!!)
         }
         catch (e: Exception) {
+            io.printer.println(e.message!!)
+        }
+        catch (e: Exception) {
+            println(e)
             io.printer.println(e.message!!)
         }
         finally {

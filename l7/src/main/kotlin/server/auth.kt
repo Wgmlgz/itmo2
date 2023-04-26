@@ -35,8 +35,8 @@ class Auth(private val dbHandler: DBHandler) {
             .compact()
     }
 
-    private fun genAccess(user: User) = genToken(UserArg(user), key, Calendar.SECOND, 5)
-    private fun genRefresh(user: User) = genToken(UserArg(user), refreshKey, Calendar.SECOND, 10)
+    private fun genAccess(user: User) = genToken(UserArg(user), key, Calendar.MINUTE, 5)
+    private fun genRefresh(user: User) = genToken(UserArg(user), refreshKey, Calendar.MINUTE, 30)
 
     fun checkAuth(authorization: String) = checkTokenUser(authorization, key)
 
