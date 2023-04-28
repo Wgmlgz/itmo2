@@ -1,21 +1,37 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.8.10'
-    id 'application'
-    id 'org.jetbrains.kotlin.plugin.serialization' version '1.8.10'
+    id 'org.springframework.boot' version '3.0.6'
+    id 'io.spring.dependency-management' version '1.1.0'
+    id 'org.jetbrains.kotlin.jvm' version '1.7.22'
+    id 'org.jetbrains.kotlin.plugin.spring' version '1.7.22'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.7.22'
 }
 
-group = 'org.example'
-version = '1.0-SNAPSHOT'
+group = 'com.wgmlgz'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
 
 repositories {
     mavenCentral()
-    maven { url 'https://repository.apache.org/snapshots' }
 }
 
 dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+    implementation 'org.jetbrains.kotlin:kotlin-reflect'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1'
-    implementation "ch.qos.logback:logback-classic:1.2.3"
     implementation "io.ktor:ktor-server-core:2.2.4"
     implementation "io.ktor:ktor-server-netty:2.2.4"
     implementation "io.ktor:ktor-client-core:2.2.4"
@@ -32,18 +48,13 @@ dependencies {
             'io.jsonwebtoken:jjwt-jackson:0.11.5' // or 'io.jsonwebtoken:jjwt-gson:0.11.5' for gson
 }
 
-test {
+tasks.withType(KotlinCompile) {
+    kotlinOptions {
+        freeCompilerArgs = ['-Xjsr305=strict']
+        jvmTarget = '17'
+    }
+}
+
+tasks.named('test') {
     useJUnitPlatform()
-}
-
-compileKotlin {
-    kotlinOptions.jvmTarget = '1.8'
-}
-
-compileTestKotlin {
-    kotlinOptions.jvmTarget = '1.8'
-}
-
-application {
-    mainClassName = 'MainKt'
 }
