@@ -10,7 +10,6 @@ import org.springframework.boot.runApplication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
 
-
 import io.ktor.http.*
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
@@ -18,17 +17,10 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.internal.decodeStringToJsonTree
 import org.springframework.web.bind.annotation.RequestBody
 
-/**
- * Cmd handles main logic
- *
- * @property save path to save file
- * @constructor Create empty Cmd
- */
-
 val dbHandler = DBHandler(
     Database.connect(
         "jdbc:postgresql://localhost:5432/test", driver = "org.postgresql.Driver",
-        user = "postgres", password = "cat"
+        user = "sus", password = "sus"
     )
 )
 
@@ -60,7 +52,6 @@ class Server {
 
         return processRequest(payload)
     }
-
 }
 
 @SpringBootApplication
