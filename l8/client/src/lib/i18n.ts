@@ -12,7 +12,6 @@ addMessages('fi', fi);
 addMessages('ru-RU', ru);
 addMessages('sq', sq);
 
-console.log(getLocaleFromNavigator())
 init({
   fallbackLocale: 'en-US',
   initialLocale: getLocaleFromNavigator() || 'en-US'

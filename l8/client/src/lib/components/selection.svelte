@@ -8,32 +8,41 @@
   import { send } from '$lib/utils';
 
   export let product: TaggedProductArg;
+  export let update: () => Promise<void>;
+  export let close: () => void;
   let output: string | null = null;
 </script>
 
-<Paper>
+<Paper class="relative">
+  <div class="absolute right-2 top-3">
+    <IconButton on:click={close} class="material-icons">close</IconButton>
+  </div>
   <Title>
     {$_('Selected product:')}
   </Title>
   <Content>
-    <ProductForm bind:value={product} />
     <div class="flex items-center">
       <Button
         variant="raised"
-        on:click={async () =>
-          (output = await send('Update', [
+        on:click={async () => {
+          output = await send('Update', [
             { type: 'StrArg', str: String(product.product.id) },
             product
-          ]))}>{$_('update')}</Button
+          ]);
+          update();
+        }}>{$_('update')}</Button
       >
       <IconButton
         class="material-icons"
-        on:click={async () =>
-          (output = await send('RemoveById', [
-            { type: 'StrArg', str: String(product.product.id) }
-          ]))}>delete</IconButton
+        on:click={async () => {
+          output = await send('RemoveById', [{ type: 'StrArg', str: String(product.product.id) }]);
+          if (output?.startsWith('removed')) close();
+          update();
+        }}>delete</IconButton
       >
     </div>
+    <ProductForm bind:value={product} />
+
     {#if output}
       <Paper>
         <Title>{$_('Output:')}</Title>

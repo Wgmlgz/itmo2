@@ -20,14 +20,21 @@
     type: 'ProductArg' as const,
     product: null
   };
+  export let update: () => Promise<void>;
 </script>
 
-<div class="m-4">
+<div class="m-4 flex flex-col gap-2">
   {#if Cookies.get('idc')}
-      <Table bind:selected_product={selected_product.product} />
+    <Table bind:update bind:selected_product={selected_product.product} />
+    <div class="flex gap-2">
       {#if selected_product.product !== null}
-        <Selection bind:product={selected_product} />
+        <Selection
+          bind:update
+          close={() => (selected_product.product = null)}
+          bind:product={selected_product}
+        />
       {/if}
-      <Commands />
+      <Commands bind:update />
+    </div>
   {/if}
 </div>

@@ -14,6 +14,7 @@
 
   export let type: Routes;
   export let info: CmdInfo;
+  export let update: () => Promise<void>;
 
   let args: Arg[] = [];
 
@@ -24,6 +25,7 @@
 
   const ssend = async () => {
     output = await send(type || '', args);
+    update()
   };
   onMount(async () => {
     await ssend();

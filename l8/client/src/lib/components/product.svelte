@@ -15,10 +15,9 @@
   export let value: TaggedProductArg;
 
   $: value = value;
-  $: console.log('product', value);
 </script>
 
-<div class="flex flex-col">
+<div class="flex flex-col gap-2">
   <Textfield label="Name" bind:value={value.product.name} />
   <Paper variant="outlined">
     <p>{$_('Coordinates')}</p>

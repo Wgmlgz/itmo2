@@ -45,7 +45,6 @@
   <Content>
     <List>
       <Item
-        href="javascript:void(0)"
         on:click={() => setActive('Star')}
         activated={active === 'Star'}
       >
