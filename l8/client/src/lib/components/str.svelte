@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Arg } from '$lib/storage';
+	import type { Arg, TaggedStrArg } from '$lib/storage';
 	import Textfield from '@smui/textfield';
 
 	export let value: Arg;
@@ -8,7 +8,7 @@
 	const tmp = {
 		type: 'StrArg',
 		str: ''
-	} satisfies Arg;
+	} satisfies TaggedStrArg;
 </script>
 
 <Textfield bind:value={tmp.str} />

@@ -1,60 +1,57 @@
 <script lang="ts">
-	import { CountryArr, type Arg, UnitOfMeasureArr } from '$lib/storage';
-	import Textfield from '@smui/textfield';
-	import Select, { Option } from '@smui/select';
-	import Paper from '@smui/paper';
+  import {
+    CountryArr,
+    type Arg,
+    UnitOfMeasureArr,
+    type Person,
+    type ProductArg,
+    type TaggedProductArg
+  } from '$lib/storage';
+  import Textfield from '@smui/textfield';
+  import Select, { Option } from '@smui/select';
+  import Paper from '@smui/paper';
+  import { _ } from 'svelte-i18n';
 
-	export let value: Arg;
-	$: value = tmp;
+  export let value: TaggedProductArg;
 
-	const tmp = {
-		type: 'ProductArg',
-		product: {
-			id: 0,
-			name: '',
-			coordinates: {
-				x: 0,
-				y: 0
-			},
-			creationDate: new Date().toISOString(),
-			price: 0,
-			manufactureCost: 0,
-			unitOfMeasure: undefined,
-			owner: {
-				name: '',
-				nationality: 'CHINA',
-				birthday: ''
-			}
-		}
-	} satisfies Arg;
+  $: value = value;
+  $: console.log('product', value);
 </script>
 
 <div class="flex flex-col">
-	<Textfield label="Name" bind:value={tmp.product.name} />
-	<Paper variant="outlined">
-		<p>Coordinates</p>
-		<Textfield label="X" type="number" bind:value={tmp.product.coordinates.x} />
-		<Textfield label="Y" type="number" bind:value={tmp.product.coordinates.y} />
-	</Paper>
+  <Textfield label="Name" bind:value={value.product.name} />
+  <Paper variant="outlined">
+    <p>{$_('Coordinates')}</p>
+    <Textfield label={$_('X')} type="number" bind:value={value.product.coordinates.x} />
+    <Textfield label={$_('Y')} type="number" bind:value={value.product.coordinates.y} />
+  </Paper>
 
-	<Textfield label="price" type="number" bind:value={tmp.product.price} />
-	<Textfield label="manufactureCost" type="number" bind:value={tmp.product.manufactureCost} />
+  <Textfield label={$_('price')} type="number" bind:value={value.product.price} />
+  <Textfield
+    label={$_('manufactureCost')}
+    type="number"
+    bind:value={value.product.manufactureCost}
+  />
 
-	<Select bind:value={tmp.product.unitOfMeasure} label="unitOfMeasure">
-		{#each UnitOfMeasureArr as value}
-			<Option {value}>{value}</Option>
-		{/each}
-	</Select>
+  <Select bind:value={value.product.unitOfMeasure} label={$_('unitOfMeasure')}>
+    {#each UnitOfMeasureArr as value}
+      <Option {value}>{value}</Option>
+    {/each}
+  </Select>
 
-	<Paper variant="outlined">
-		<p>Owner</p>
-		<Textfield label="Name" bind:value={tmp.product.owner.name} />
-		<Textfield label="birthday" type="datetime-local" bind:value={tmp.product.owner.birthday} />
+  <Paper variant="outlined">
+    <p>{$_('Owner')}</p>
+    <Textfield label={$_('Name')} bind:value={value.product.owner.name} />
+    <Textfield
+      label={$_('birthday')}
+      type="datetime-local"
+      bind:value={value.product.owner.birthday}
+    />
 
-		<Select bind:value={tmp.product.owner.nationality} label="nationality">
-			{#each CountryArr as value}
-				<Option {value}>{value}</Option>
-			{/each}
-		</Select>
-	</Paper>
+    <Select bind:value={value.product.owner.nationality} label={$_('nationality')}>
+      {#each CountryArr as value}
+        <Option {value}>{value}</Option>
+      {/each}
+    </Select>
+  </Paper>
 </div>

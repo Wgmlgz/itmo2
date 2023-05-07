@@ -1,27 +1,20 @@
 <script lang="ts">
-	import { CountryArr, type Arg } from '$lib/storage';
-	import Textfield from '@smui/textfield';
-	import Select, { Option } from '@smui/select';
-	import Paper from '@smui/paper';
-	export let value: Arg;
-	$: value = tmp;
+  import { CountryArr, type Arg, type PersonArg, type TaggedPersonArg } from '$lib/storage';
+  import Textfield from '@smui/textfield';
+  import Select, { Option } from '@smui/select';
+  import Paper from '@smui/paper';
+  import { _ } from 'svelte-i18n';
 
-	const tmp = {
-		type: 'PersonArg',
-		person: {
-			name: '',
-			nationality: 'CHINA',
-			birthday: ''
-		}
-	} satisfies Arg;
+
+  export let value: TaggedPersonArg
 </script>
 
 <div>
-	<Textfield label="Name" bind:value={tmp.person.name} />
-	<Select bind:value={tmp.person.nationality} variant="filled" label="nationality">
-		{#each CountryArr as value}
-			<Option {value}>{value}</Option>
-		{/each}
-	</Select>
-	<Textfield label="birthday" type="datetime-local" bind:value={tmp.person.birthday} />
+  <Textfield label={$_("Name")} bind:value={value.person.name} />
+  <Select bind:value={value.person.nationality} variant="filled" label={$_("nationality")}>
+    {#each CountryArr as value}
+      <Option {value}>{$_(value)}</Option>
+    {/each}
+  </Select>
+  <Textfield label={$_("birthday")} type="datetime-local" bind:value={value.person.birthday} />
 </div>
