@@ -54,6 +54,7 @@ object KLocalDateTimeSerializer : KSerializer<LocalDateTime> {
  */
 @Serializable
 class Product(
+    var userId: Long? = null,
     var id: Long,
     val name: String,
     val coordinates: Coordinates,
@@ -63,33 +64,7 @@ class Product(
     val unitOfMeasure: UnitOfMeasure?,
     val owner: Person
 ) : Comparable<Product> {
-    companion object : Io.IoReadable<Product> {
-        private var last_id: Long = 1
-        private fun getId() = ++last_id
-
-        override fun read(io: Io, full: Boolean) = Product(
-            (if (full) io.readVal("id") { it.toLong() } else getId()),
-            io.readVal("name") {
-                (if (it == "") throw Exception("can't be empty") else it)
-            },
-            io.readNested("coordinates") {
-                Coordinates.read(io, full)
-            },
-            (if (full) io.readVal("creationDate") {
-                ZonedDateTime.parse(it)
-            } else ZonedDateTime.now()),
-            io.readVal("price") {
-                (if (it.toDouble() > 0) it.toDouble() else throw Exception("must be > 0"))
-            },
-            io.readVal("manufactureCost") {
-                (if (it.toFloat() > 0) it.toFloat() else throw Exception("must be > 0"))
-            },
-            io.readVal("unitOfMeasure (${enumValues<UnitOfMeasure>().joinToString { it.name }})") {
-                (if (it == "") null else UnitOfMeasure.valueOf(it.uppercase()))
-            },
-            io.readNested("owner") { Person.read(io, full) },
-        )
-
+    companion object {
         fun header() = arrayOf(
             "id",
             "name",

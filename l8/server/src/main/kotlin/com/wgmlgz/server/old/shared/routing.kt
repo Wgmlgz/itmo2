@@ -27,7 +27,7 @@ enum class Routes {
 }
 
 @Serializable
-class User(val id: Int? = null, val login: String, val passwordHash: ByteArray, var refreshToken: String? = null) {
+class User(val id: Int? = null, val login: String, val passwordHash: ByteArray? = null, var refreshToken: String? = null) {
     constructor(login: String, password: String) : this(
         null,
         login,

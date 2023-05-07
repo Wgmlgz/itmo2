@@ -1,3 +1,4 @@
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.time.ZonedDateTime
@@ -12,7 +13,6 @@ import java.util.concurrent.locks.ReentrantLock
 class CmdServer(private val dbHandler: DBHandler) {
     private var io: Io = CaptureIo()
     private var q = PriorityQueue<Product>()
-    private val lock: Lock = ReentrantLock()
     private val initTime = ZonedDateTime.now()
 
     private val auth = Auth(dbHandler)
@@ -20,6 +20,8 @@ class CmdServer(private val dbHandler: DBHandler) {
     private fun sync() {
         q = dbHandler.fetch()
     }
+
+    fun toJson() = Json.encodeToString(ArrayList(q))
 
     init {
         sync()
@@ -52,29 +54,6 @@ class CmdServer(private val dbHandler: DBHandler) {
             io.printer.println("registered user ${user.login}")
             null
         },
-        Routes.Login to {
-            val user = (it.args[0] as UserArg).user;
-            val (token, refreshToken) = auth.login(user)
-//                    println("huh?")
-//                    throw Exception("invalid credentials")
-//                }
-            io.printer.println("logged in as ${user.login}")
-            Packet(
-                headers = mutableMapOf(
-                    "token" to StrArg(token), "refreshToken" to StrArg(refreshToken)
-                )
-            )
-        },
-        Routes.Refresh to {
-            val oldRefreshToken = (it.args[0] as StrArg).str;
-            val (token, refreshToken) = auth.refresh(oldRefreshToken)
-            io.printer.println("refreshed")
-            Packet(
-                headers = mutableMapOf(
-                    "token" to StrArg(token), "refreshToken" to StrArg(refreshToken)
-                )
-            )
-        },
         /** const commands */
         Routes.Info to {
             io.printer.println("type: java.util.PriorityQueue")
@@ -83,9 +62,7 @@ class CmdServer(private val dbHandler: DBHandler) {
             null
         },
         Routes.Show to {
-            q.stream().forEach {
-                io.printer.println(it.toString());
-            }
+            io.printer.println(toJson());
             null
         },
         Routes.Clear to {
@@ -174,28 +151,28 @@ class CmdServer(private val dbHandler: DBHandler) {
         Routes.Login to false,
         Routes.Refresh to false,
         /** const commands */
-        Routes.Info to true,
-        Routes.Show to true,
-        Routes.ExecuteScript to true,
-        Routes.Clear to true,
-        Routes.Exit to true,
-        Routes.MinByManufactureCost to true,
-        Routes.CountLessThanOwner to true,
-        Routes.FilterContainsName to true,
+        Routes.Info to false,
+        Routes.Show to false,
+        Routes.ExecuteScript to false,
+        Routes.Clear to false,
+        Routes.Exit to false,
+        Routes.MinByManufactureCost to false,
+        Routes.CountLessThanOwner to false,
+        Routes.FilterContainsName to false,
         /** mut commands */
-        Routes.Add to true,
-        Routes.Update to true,
-        Routes.RemoveById to true,
-        Routes.RemoveFirst to true,
-        Routes.AddIfMax to true,
-        Routes.RemoveGreater to true
+        Routes.Add to false,
+        Routes.Update to false,
+        Routes.RemoveById to false,
+        Routes.RemoveFirst to false,
+        Routes.AddIfMax to false,
+        Routes.RemoveGreater to false
     )
 
     fun runCmd(json: JsonElement): Packet {
         var res = Packet()
+        res.code = ResponseCode.OK
         try {
             val packet = Json.decodeFromJsonElement(Packet.serializer(), json)
-            lock.lock();
             if (!needsAuth.contains(packet.type) || !commands.contains(packet.type))
                 throw TestException(ResponseCode.NOT_FOUND, Exception("Command was not found"))
 
@@ -208,16 +185,9 @@ class CmdServer(private val dbHandler: DBHandler) {
         } catch (e: TestException) {
             res.code = e.code
             io.printer.println(e.message!!)
-        }
-        catch (e: Exception) {
-            io.printer.println(e.message!!)
-        }
-        catch (e: Exception) {
-            println(e)
-            io.printer.println(e.message!!)
-        }
-        finally {
-            lock.unlock();
+        } catch (e: Exception) {
+            res.code = ResponseCode.INTERNAL_ERROR
+            io.printer.println(e.toString())
         }
         res.args.add(StrArg((io.printer as CaptureOutput).capture()))
         return res

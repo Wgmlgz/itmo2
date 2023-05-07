@@ -9,8 +9,6 @@ import java.util.*
 
 object Users : IntIdTable() {
     val login = text("login").uniqueIndex()
-    val passwordHash = binary("passwordHash")
-    val refreshToken = text("refreshToken").nullable()
 }
 
 object Products : IntIdTable() {
@@ -34,25 +32,10 @@ class DBHandler(val db: Database) {
         }
     }
 
-    fun getRefresh(user: User) =
-        transaction {
-            Users.select { (Users.login eq user.login) and (Users.passwordHash eq user.passwordHash) }
-                .map { userFromRow(it) }
-        }[0].refreshToken
-
-    fun setRefresh(user: User, refreshToken: String) =
-        transaction {
-            Users.update({ (Users.login eq user.login) and (Users.passwordHash eq user.passwordHash) })
-            {
-                it[Users.refreshToken] = refreshToken
-            }
-        }
-
     fun register(user: User) =
         transaction {
             Users.insert {
                 it[login] = user.login
-                it[passwordHash] = user.passwordHash
             }
         }
 
@@ -63,9 +46,17 @@ class DBHandler(val db: Database) {
                 .toInt()
         }
 
+    fun idc(user: User): User {
+        val old = checkLogin(user)
+        if (old == 0) {
+            register(user)
+        }
+        return checkLogged(user)[0]
+    }
+
     fun checkLogged(user: User) =
         transaction {
-            Users.select { (Users.login eq user.login) and (Users.passwordHash eq user.passwordHash) }
+            Users.select { (Users.login eq user.login) }
                 .map { userFromRow(it) }
         }
 
@@ -125,11 +116,10 @@ class DBHandler(val db: Database) {
         fun userFromRow(row: ResultRow) = User(
             id = row[Users.id].value,
             login = row[Users.login],
-            passwordHash = row[Users.passwordHash],
-            refreshToken = row[Users.refreshToken]
         )
 
         fun fromRow(row: ResultRow) = Product(
+            userId = row[Products.userId].toLong(),
             id = row[Products.id].value.toLong(),
             name = row[Products.name],
             coordinates = Coordinates(
